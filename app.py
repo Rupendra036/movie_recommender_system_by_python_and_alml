@@ -2,12 +2,14 @@ import streamlit as st
 import pickle
 import pandas as pd
 import requests
+import gzip
 
 def fatch_poster(movie_id):
     response = requests.get('https://api.themoviedb.org/3/movie/{}?api_key=df3292a5947a25d40ed10741398ed60a&language=en-US'.format(movie_id))
     data = response.json()
     print(data)
     return "https://image.tmdb.org/t/p/w500/" + data['poster_path']
+
 def recommend(movie):
     movie_index = movies[movies['title'] == movie].index[0]
     distances = similarity[movie_index]
@@ -21,20 +23,23 @@ def recommend(movie):
         recommended_movies.append(movies.iloc[i[0]].title)
         # fatch poster from api
         recommended_movies_poster.append(fatch_poster(movie_id))
-    return recommended_movies,recommended_movies_poster
+    return recommended_movies, recommended_movies_poster
 
-movies_dict = pickle.load(open('movie_dict.pkl','rb'))
+# Load the movie data
+movies_dict = pickle.load(open('movie_dict.pkl', 'rb'))
 movies = pd.DataFrame(movies_dict)
 
-similarity = pickle.load(open('similarity.pkl','rb'))
+# Load the similarity matrix (from the compressed .pkl.gz file)
+with gzip.open('similarity.pkl.gz', 'rb') as f:
+    similarity = pickle.load(f)
 
 st.set_page_config(layout="wide")
 
 st.title('Movie Recommender System')
 
-selected_movie_name =st.selectbox(
-'Choose a movie to get recommendations: ',
-movies['title'].values)
+selected_movie_name = st.selectbox(
+    'Choose a movie to get recommendations: ',
+    movies['title'].values)
 
 if st.button('Recommend'):
     names, posters = recommend(selected_movie_name)
